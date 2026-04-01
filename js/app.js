@@ -69,10 +69,15 @@ class FluxoModApp {
         window.addEventListener('resize', Utils.debounce(() => this.resizeCanvas(), 100));
         document.addEventListener('keydown', (e) => {
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && !e.target.isContentEditable) {
-                if (e.code === 'Space' && !this.isSpacePanning) {
-                    this.isSpacePanning = true;
-                    this.canvas.parentElement.classList.add('tool-pan');
+                if (e.code === 'Space') {
+                    if (!this.isSpacePanning) {
+                        this.isSpacePanning = true;
+                        this.canvas.parentElement.classList.add('tool-pan');
+                        document.body.style.cursor = 'grab';
+                        this.canvas.style.cursor = 'grab';
+                    }
                     e.preventDefault();
+                    return; // Ensure NO other tools trigger
                 }
             }
             this.shortcuts.handleKeyDown(e);
@@ -115,6 +120,10 @@ class FluxoModApp {
         this.mouseWorld = world;
 
         if (e.button === 1 || (e.button === 0 && (this.currentTool === 'pan' || this.isSpacePanning))) {
+            if (this.isSpacePanning) {
+                document.body.style.cursor = 'grabbing';
+                this.canvas.style.cursor = 'grabbing';
+            }
             this.isPanning = true;
             this.panStart = { x: e.clientX, y: e.clientY, vx: this.viewport.x, vy: this.viewport.y };
             return;
@@ -167,6 +176,10 @@ class FluxoModApp {
         if (this.isPanning) {
             this.isPanning = false;
             this.panStart = null;
+            if (this.isSpacePanning) {
+                document.body.style.cursor = 'grab';
+                this.canvas.style.cursor = 'grab';
+            }
             return;
         }
 
@@ -202,8 +215,13 @@ class FluxoModApp {
     onKeyUp(e) {
         if (e.code === 'Space') {
             this.isSpacePanning = false;
+            document.body.style.cursor = '';
+            
             if (this.currentTool !== 'pan') {
                 this.canvas.parentElement.classList.remove('tool-pan');
+                this.canvas.style.cursor = this.currentTool === 'text' ? 'text' : this.currentTool === 'connector' ? 'crosshair' : 'default';
+            } else {
+                this.canvas.style.cursor = 'grab';
             }
         }
     }
