@@ -302,9 +302,9 @@ body {
     padding: 4px 8px;
     margin-bottom: 4px;
 }
-.shape-category-items {
+.shape-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
     gap: 8px;
 }
 
