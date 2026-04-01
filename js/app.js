@@ -772,7 +772,23 @@ class FluxoModApp {
         const menu = document.getElementById(menuId);
         const isOpen = menu.classList.contains('open');
         this.closeAllDropdowns();
-        if (!isOpen) menu.classList.add('open');
+        if (!isOpen) {
+            menu.classList.add('open');
+            const btn = document.querySelector(`[data-menu="${menuId}"]`);
+            if (btn && menu) {
+                const rect = btn.getBoundingClientRect();
+                const menuRect = menu.getBoundingClientRect();
+                
+                let left = rect.left;
+                if (left + menuRect.width > window.innerWidth) {
+                    left = window.innerWidth - menuRect.width - 4;
+                }
+                
+                menu.style.position = 'fixed';
+                menu.style.left = Math.max(4, left) + 'px';
+                menu.style.top = (rect.bottom + 4) + 'px';
+            }
+        }
     }
 
     // === SHAPE LIBRARY ===

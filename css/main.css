@@ -648,7 +648,7 @@ body {
 
 /* Dropdown menus */
 .dropdown-menu {
-    position: absolute;
+    position: fixed;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
