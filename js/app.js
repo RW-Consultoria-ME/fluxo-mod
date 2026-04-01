@@ -249,6 +249,21 @@ class FluxoModApp {
             return;
         }
 
+        const connHandle = this.selection.getConnectorHandleAtPoint(world.x, world.y);
+        if (connHandle) {
+            this.selection.isEditingConnector = true;
+            this.selection.connectorHandle = connHandle;
+            
+            if (connHandle.type === 'midpoint') {
+                connHandle.connector.waypoints.splice(connHandle.index, 0, { ...connHandle.point });
+                connHandle.type = 'point';
+                connHandle.index = connHandle.index + 1;
+                connHandle.pointsLength = connHandle.connector.waypoints.length + 2;
+            }
+            this._beforeDragSnapshot = StateSnapshot.capture(this);
+            return;
+        }
+
         // Check connector ports for creating connections
         const port = this.selection.getPortAtPoint(world.x, world.y);
         if (port) {
@@ -309,6 +324,40 @@ class FluxoModApp {
             if (Math.abs(deg % 15) < 3) deg = Math.round(deg / 15) * 15;
             shape.rotation = deg;
             this.render();
+        } else if (this.selection.isEditingConnector && this.selection.connectorHandle) {
+            const h = this.selection.connectorHandle;
+            const conn = h.connector;
+            let nx = world.x, ny = world.y;
+            if (this.grid.snapEnabled) {
+                nx = this.grid.snap(nx);
+                ny = this.grid.snap(ny);
+            }
+            if (h.index === 0) {
+                const port = this.selection.getPortAtPoint(nx, ny);
+                if (port) {
+                    conn.sourceId = port.shape.id;
+                    conn.sourcePort = port.port.id;
+                    conn.sourcePoint = null;
+                } else {
+                    conn.sourceId = null;
+                    conn.sourcePort = null;
+                    conn.sourcePoint = { x: nx, y: ny };
+                }
+            } else if (h.index === h.pointsLength - 1) {
+                const port = this.selection.getPortAtPoint(nx, ny);
+                if (port) {
+                    conn.targetId = port.shape.id;
+                    conn.targetPort = port.port.id;
+                    conn.targetPoint = null;
+                } else {
+                    conn.targetId = null;
+                    conn.targetPort = null;
+                    conn.targetPoint = { x: nx, y: ny };
+                }
+            } else {
+                conn.waypoints[h.index - 1] = { x: nx, y: ny };
+            }
+            this.render();
         } else if (this.selection.selectionRect) {
             const r = this.selection.selectionRect;
             r.x = Math.min(r.startX, world.x);
@@ -322,8 +371,8 @@ class FluxoModApp {
     }
 
     onSelectUp(world) {
-        if ((this.selection.isMoving || this.selection.isResizing || this.selection.isRotating) && this._beforeDragSnapshot) {
-            this.history.push({ type: 'move', description: 'Mover/Redimensionar', before: this._beforeDragSnapshot, after: StateSnapshot.capture(this) });
+        if ((this.selection.isMoving || this.selection.isResizing || this.selection.isRotating || this.selection.isEditingConnector) && this._beforeDragSnapshot) {
+            this.history.push({ type: 'move', description: 'Mover/Mudar', before: this._beforeDragSnapshot, after: StateSnapshot.capture(this) });
             this._beforeDragSnapshot = null;
         }
 
@@ -339,6 +388,8 @@ class FluxoModApp {
         this.selection.isMoving = false;
         this.selection.isResizing = false;
         this.selection.isRotating = false;
+        this.selection.isEditingConnector = false;
+        this.selection.connectorHandle = null;
         this.selection.selectionRect = null;
         this.selection.dragStart = null;
         this.smartGuides = null;
