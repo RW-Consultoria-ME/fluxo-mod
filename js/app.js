@@ -67,7 +67,16 @@ class FluxoModApp {
 
     bindEvents() {
         window.addEventListener('resize', Utils.debounce(() => this.resizeCanvas(), 100));
-        document.addEventListener('keydown', (e) => this.shortcuts.handleKeyDown(e));
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && !e.target.isContentEditable) {
+                if (e.code === 'Space' && !this.isSpacePanning) {
+                    this.isSpacePanning = true;
+                    this.canvas.parentElement.classList.add('tool-pan');
+                    e.preventDefault();
+                }
+            }
+            this.shortcuts.handleKeyDown(e);
+        });
         document.addEventListener('keyup', (e) => this.onKeyUp(e));
         this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
@@ -105,7 +114,7 @@ class FluxoModApp {
         const world = this.screenToWorld(e.clientX, e.clientY);
         this.mouseWorld = world;
 
-        if (e.button === 1 || (e.button === 0 && this.currentTool === 'pan')) {
+        if (e.button === 1 || (e.button === 0 && (this.currentTool === 'pan' || this.isSpacePanning))) {
             this.isPanning = true;
             this.panStart = { x: e.clientX, y: e.clientY, vx: this.viewport.x, vy: this.viewport.y };
             return;
@@ -139,18 +148,7 @@ class FluxoModApp {
             return;
         }
 
-        if (this.isSpacePanning && this.panStart) {
-            const dx = e.clientX - this.panStart.x;
-            const dy = e.clientY - this.panStart.y;
-            this.viewport.x = this.panStart.vx - dx / this.viewport.zoom;
-            this.viewport.y = this.panStart.vy - dy / this.viewport.zoom;
-            this.panStart.x = e.clientX;
-            this.panStart.y = e.clientY;
-            this.panStart.vx = this.viewport.x;
-            this.panStart.vy = this.viewport.y;
-            this.render();
-            return;
-        }
+
 
         switch (this.currentTool) {
             case 'select': this.onSelectMove(world, e); break;
@@ -202,10 +200,11 @@ class FluxoModApp {
     }
 
     onKeyUp(e) {
-        if (e.key === ' ') {
+        if (e.code === 'Space') {
             this.isSpacePanning = false;
-            this.panStart = null;
-            this.canvas.parentElement.classList.remove('tool-pan');
+            if (this.currentTool !== 'pan') {
+                this.canvas.parentElement.classList.remove('tool-pan');
+            }
         }
     }
 

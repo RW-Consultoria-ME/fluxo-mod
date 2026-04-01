@@ -13,6 +13,8 @@ class SelectionManager {
         this.isMoving = false;
         this.isResizing = false;
         this.isRotating = false;
+        this.isEditingConnector = false;
+        this.connectorHandle = null;
         this.handleSize = 8;
     }
 
@@ -133,6 +135,29 @@ class SelectionManager {
         return null;
     }
 
+    getConnectorHandleAtPoint(px, py) {
+        if (this.selectedConnectors.length !== 1) return null;
+        const conn = this.selectedConnectors[0];
+        const points = conn.getPoints(this.app.shapes);
+        const s = this.handleSize / this.app.viewport.zoom;
+
+        // Existing points
+        for (let i = 0; i < points.length; i++) {
+            if (Utils.distance(px, py, points[i].x, points[i].y) <= s * 1.5) {
+                return { connector: conn, type: 'point', index: i, point: points[i], pointsLength: points.length };
+            }
+        }
+        // Midpoints to create waypoints
+        for (let i = 0; i < points.length - 1; i++) {
+            const mx = (points[i].x + points[i+1].x)/2;
+            const my = (points[i].y + points[i+1].y)/2;
+            if (Utils.distance(px, py, mx, my) <= s * 1.5) {
+                return { connector: conn, type: 'midpoint', index: i, point: {x: mx, y: my} };
+            }
+        }
+        return null;
+    }
+
     drawSelection(ctx) {
         if (this.selectedShapes.length === 0 && this.selectedConnectors.length === 0) return;
 
@@ -226,13 +251,26 @@ class SelectionManager {
             points.forEach((p, i) => { if (i > 0) ctx.lineTo(p.x, p.y); });
             ctx.stroke();
 
-            // Endpoints
-            [points[0], points[points.length - 1]].forEach(p => {
-                ctx.fillStyle = '#6366f1';
+            // Endpoints and waypoints
+            points.forEach((p, i) => {
+                ctx.fillStyle = (i === 0 || i === points.length - 1) ? '#ef4444' : '#6366f1';
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, 4 / zoom, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, 5 / zoom, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5 / zoom;
+                ctx.stroke();
             });
+            // Midpoints
+            for(let i=0; i < points.length - 1; i++) {
+                 const mx = (points[i].x + points[i+1].x)/2;
+                 const my = (points[i].y + points[i+1].y)/2;
+                 ctx.fillStyle = '#10b981';
+                 ctx.beginPath();
+                 ctx.arc(mx, my, 4 / zoom, 0, Math.PI * 2);
+                 ctx.fill();
+                 ctx.stroke();
+            }
         });
 
         // Selection rectangle
