@@ -86,7 +86,7 @@ class Connector {
 
         if (!startPt || !endPt) return [];
 
-        if (this.type === ConnectorTypes.ELBOW) {
+        if (this.type === ConnectorTypes.ELBOW && this.waypoints.length === 0) {
             return this.getElbowPoints(startPt, endPt);
         }
 
